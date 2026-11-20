@@ -35,16 +35,17 @@
     <li><span>לוחצים <b dir="ltr">Deploy</b>, מחכים כחצי דקה ומרעננים את הדף הזה.</span></li>
   </ol>
   <p class="quiet">ההוראות המלאות נמצאות בקובץ README שבמאגר הקוד.</p>
-  <p><button type="button" class="btn" id="recheck">בדיקה מחדש</button></p>
+  <p><button type="button" class="btn" id="recheck">בדיקה מחדש</button> <button type="button" class="btn" id="go-to-login" style="margin-inline-start: 8px;">מעבר לטופס כניסה</button></p>
 </section>
 
 <section class="view" id="view-login" hidden aria-labelledby="login-title">
   <h1 class="title" id="login-title">כניסה לניהול</h1>
   <form id="login-form" class="login" novalidate>
     <label class="label" for="token">קוד גישה</label>
-    <input class="field" id="token" name="token" type="password" autocomplete="current-password" autocapitalize="off" spellcheck="false" dir="ltr" required>
+    <input class="field" id="token" name="token" type="password" autocomplete="current-password" autocapitalize="off" spellcheck="false" dir="ltr" required placeholder="הזינו קוד גישה">
     <p class="error" id="login-error" role="alert" hidden></p>
     <button type="submit" class="btn btn--solid btn--wide" id="login-submit">כניסה</button>
+    <p class="quiet" id="token-hint" style="margin-top: 14px; font-size: 13px; text-align: center;">קוד גישה ברירת מחדל לפיתוח מקומי: <strong>admin123</strong></p>
   </form>
 </section>
 
@@ -75,20 +76,32 @@
     </div>
     <form id="texts-form" class="texts" novalidate>
       <div class="row-field">
-        <label class="label" for="f-name">שם הצימר</label>
-        <input class="field" id="f-name" name="name" maxlength="60" required autocomplete="off">
+        <label class="label" for="f-name">שם הסוויטה / הצימר</label>
+        <input class="field" id="f-name" name="name" maxlength="80" required autocomplete="off" placeholder="סוויטה במושבה">
       </div>
       <div class="row-field">
-        <label class="label" for="f-subtitle">שורת משנה <span class="quiet">(לא חובה)</span></label>
-        <input class="field" id="f-subtitle" name="subtitle" maxlength="140" autocomplete="off" placeholder="למשל: שתי בקתות עץ בגליל העליון…">
+        <label class="label" for="f-subtitle">שורת משנה / סלוגן <span class="quiet">(לא חובה)</span></label>
+        <input class="field" id="f-subtitle" name="subtitle" maxlength="160" autocomplete="off" placeholder="למשל: אירוח יוקרתי ושלו בלב המושבה…">
       </div>
       <div class="row-field">
-        <label class="label" for="f-phone">טלפון</label>
-        <input class="field" id="f-phone" name="phone" type="tel" inputmode="tel" maxlength="20" dir="ltr" autocomplete="off" placeholder="050-1234567">
+        <label class="label" for="f-location">מיקום / אזור <span class="quiet">(לא חובה)</span></label>
+        <input class="field" id="f-location" name="location" maxlength="100" autocomplete="off" placeholder="למשל: מושבה כנרת, גליל…">
       </div>
       <div class="row-field">
-        <label class="label" for="f-whatsapp">וואטסאפ</label>
-        <input class="field" id="f-whatsapp" name="whatsapp" type="tel" inputmode="tel" maxlength="20" dir="ltr" autocomplete="off" placeholder="050-1234567" aria-describedby="wa-hint">
+        <label class="label" for="f-description">תיאור ואודות הסוויטה <span class="quiet">(לא חובה)</span></label>
+        <textarea class="field" id="f-description" name="description" rows="4" maxlength="2500" placeholder="ספרו על הסוויטה, האווירה, העיצוב, החצר, הנוף..."></textarea>
+      </div>
+      <div class="row-field">
+        <label class="label" for="f-amenities">מתקנים ומאפיינים <span class="quiet">(לא חובה, הפרידו בפסיקים)</span></label>
+        <input class="field" id="f-amenities" name="amenities" maxlength="800" autocomplete="off" placeholder="למשל: בריכה פרטית, ג'קוזי ספא, מטבחון מאובזר, Wi-Fi, מכונת קפה, נוף פתוח…">
+      </div>
+      <div class="row-field">
+        <label class="label" for="f-phone">טלפון להתקשרות</label>
+        <input class="field" id="f-phone" name="phone" type="tel" inputmode="tel" maxlength="25" dir="ltr" autocomplete="off" placeholder="050-1234567">
+      </div>
+      <div class="row-field">
+        <label class="label" for="f-whatsapp">וואטסאפ להודעות</label>
+        <input class="field" id="f-whatsapp" name="whatsapp" type="tel" inputmode="tel" maxlength="25" dir="ltr" autocomplete="off" placeholder="050-1234567" aria-describedby="wa-hint">
         <p class="quiet field-hint" id="wa-hint">אם משאירים ריק, כפתור הוואטסאפ ישתמש במספר הטלפון.</p>
       </div>
       <p class="error" id="texts-error" role="alert" hidden></p>

@@ -200,6 +200,11 @@ a, button, label[for] { touch-action: manipulation; }
   appearance: none;
 }
 .field::placeholder { color: #767676; }
+textarea.field {
+  min-height: 100px;
+  resize: vertical;
+  line-height: 1.6;
+}
 .field:focus-visible { outline: 1px solid var(--ink); outline-offset: 0; box-shadow: none; }
 .field[dir="ltr"] { text-align: left; }
 .field[aria-invalid="true"] { outline: 2px solid var(--ink); outline-offset: 0; }

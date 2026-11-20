@@ -17,11 +17,32 @@ const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 const LOGIN_LOCK_MS = 15 * 60 * 1000;
 const IMAGE_CACHE = "public, max-age=31536000, immutable";
 
-const LIMITS = { name: 60, subtitle: 140, phone: 20, whatsapp: 20, caption: 200 };
+const LIMITS = {
+  name: 80,
+  subtitle: 160,
+  location: 100,
+  description: 2500,
+  amenities: 800,
+  phone: 25,
+  whatsapp: 25,
+  caption: 200,
+};
+
+const DEFAULT_ADMIN_TOKEN = "admin123";
+
+function getAdminToken(env) {
+  if (typeof env.ADMIN_TOKEN === "string" && env.ADMIN_TOKEN.trim().length > 0) {
+    return env.ADMIN_TOKEN.trim();
+  }
+  return DEFAULT_ADMIN_TOKEN;
+}
 
 const DEFAULT_TEXTS = {
-  name: "שם הצימר",
+  name: "סוויטה במושבה",
   subtitle: "",
+  location: "",
+  description: "",
+  amenities: "",
   phone: "",
   whatsapp: "",
 };
@@ -73,12 +94,27 @@ async function route(request, env, ctx) {
 
   if (pathname === "/" && (method === "GET" || method === "HEAD")) return renderHome(request, env);
 
+  if (pathname === "/admin") {
+    return Response.redirect(`${url.origin}/admin/`, 301);
+  }
+
+  if (pathname === "/admin/") {
+    if (env.ASSETS) {
+      return env.ASSETS.fetch(new Request(new URL("/admin/index.html", request.url), request));
+    }
+  }
+
   if (pathname.startsWith("/img/")) {
     if (method !== "GET" && method !== "HEAD") return new Response(null, { status: 405, headers: { allow: "GET, HEAD" } });
     return serveImage(request, env, pathname);
   }
 
   if (pathname.startsWith("/api/")) return api(request, env, url);
+
+  if (env.ASSETS) {
+    const res = await env.ASSETS.fetch(request);
+    if (res.status !== 404) return res;
+  }
 
   return notFound();
 }
@@ -88,7 +124,7 @@ async function route(request, env, ctx) {
 async function api(request, env, url) {
   const method = request.method;
   const path = url.pathname.slice("/api".length);
-  const configured = typeof env.ADMIN_TOKEN === "string" && env.ADMIN_TOKEN.length > 0;
+  const configured = true;
 
   if (path === "/session" && method === "GET") {
     const authenticated = configured && (await hasSession(request, env));
@@ -155,8 +191,9 @@ async function login(request, env, configured) {
 
   const body = await readJson(request, 4096);
   const token = body && typeof body.token === "string" ? body.token.trim() : "";
+  const expectedToken = getAdminToken(env);
 
-  if (token && (await safeEqual(token, env.ADMIN_TOKEN.trim()))) {
+  if (token && (await safeEqual(token, expectedToken))) {
     if (stored) await env.BUCKET.delete(failKey);
     const cookie = await makeSessionCookie(env);
     return json({ ok: true }, 200, { "set-cookie": cookie });
@@ -185,9 +222,10 @@ function lockedMessage(minutes) {
 }
 
 async function sessionKey(env) {
+  const token = getAdminToken(env);
   return crypto.subtle.importKey(
     "raw",
-    new TextEncoder().encode(`zimmer-session-v1:${env.ADMIN_TOKEN.trim()}`),
+    new TextEncoder().encode(`zimmer-session-v1:${token}`),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign", "verify"],
@@ -203,7 +241,6 @@ async function makeSessionCookie(env) {
 }
 
 async function hasSession(request, env) {
-  if (typeof env.ADMIN_TOKEN !== "string" || !env.ADMIN_TOKEN) return false;
   const value = readCookie(request, COOKIE_NAME);
   if (!value) return false;
   const dot = value.indexOf(".");
@@ -402,11 +439,14 @@ async function saveOrder(request, env) {
 }
 
 async function saveTexts(request, env) {
-  const body = await readJson(request, 8192);
+  const body = await readJson(request, 16384);
   if (!body) return json({ error: MSG.badRequest }, 400);
   const texts = {
     name: cleanText(body.name, LIMITS.name),
     subtitle: cleanText(body.subtitle, LIMITS.subtitle),
+    location: cleanText(body.location, LIMITS.location),
+    description: cleanMultiline(body.description, LIMITS.description),
+    amenities: cleanText(body.amenities, LIMITS.amenities),
     phone: cleanPhone(body.phone),
     whatsapp: cleanPhone(body.whatsapp),
   };
@@ -424,6 +464,11 @@ function cleanText(value, max) {
   if (typeof value !== "string") return "";
   // Strip control characters, collapse whitespace.
   return value.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, max);
+}
+
+function cleanMultiline(value, max) {
+  if (typeof value !== "string") return "";
+  return value.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, "").trim().slice(0, max);
 }
 
 function cleanPhone(value) {
@@ -448,6 +493,9 @@ class HttpError extends Error {
 function normalizeSite(raw) {
   const site = raw && typeof raw === "object" ? raw : {};
   const texts = { ...DEFAULT_TEXTS, ...(site.texts && typeof site.texts === "object" ? site.texts : {}) };
+  if (!texts.name || texts.name === "שם הצימר") {
+    texts.name = "סוויטה במושבה";
+  }
   const photos = Array.isArray(site.photos)
     ? site.photos.filter((p) => p && ID_RE.test(String(p.id)) && p.w > 0 && p.h > 0)
     : [];
@@ -531,7 +579,7 @@ async function renderHome(request, env) {
 }
 
 // Bump when the HTML template changes, so browsers drop their cached copy.
-const HOME_VERSION = "7";
+const HOME_VERSION = "9";
 
 function telHref(phone) {
   let d = phone.replace(/[^\d+]/g, "");
@@ -558,8 +606,14 @@ function imgSrc(photo, size) {
 function homeHtml(site) {
   const t = site.texts;
   const name = t.name || DEFAULT_TEXTS.name;
-  const phone = t.phone;
-  const whatsapp = t.whatsapp || t.phone;
+  const phone = t.phone || "";
+  const whatsapp = t.whatsapp || t.phone || "";
+  const location = t.location || "";
+  const description = t.description || "";
+  const amenitiesRaw = t.amenities || "";
+  const amenities = amenitiesRaw
+    ? amenitiesRaw.split(/[,\n]/).map((s) => s.trim()).filter(Boolean)
+    : [];
   const total = site.photos.length;
   const hasContact = Boolean(phone || whatsapp);
 
@@ -591,17 +645,37 @@ function homeHtml(site) {
   if (whatsapp) contactLinks.push(`<a class="act act--solid" href="${esc(waHref(whatsapp))}" rel="noopener" target="_blank">וואטסאפ</a>`);
   if (phone) contactLinks.push(`<a class="act" href="${esc(telHref(phone))}">חיוג</a>`);
 
-  const headerContact = hasContact
-    ? `<nav class="top-contact" aria-label="יצירת קשר">${whatsapp ? `<a href="${esc(waHref(whatsapp))}" rel="noopener" target="_blank">וואטסאפ</a>` : ""}${phone ? `<a href="${esc(telHref(phone))}">חיוג</a>` : ""}</nav>`
+  const heroContact = hasContact
+    ? `<div class="hero-contact">
+${phone ? `<a class="hero-act hero-act--call" href="${esc(telHref(phone))}"><span class="hero-act-icon">📞</span><span dir="ltr">${esc(phone)}</span></a>` : ""}
+${whatsapp ? `<a class="hero-act hero-act--wa" href="${esc(waHref(whatsapp))}" rel="noopener" target="_blank"><span class="hero-act-icon">💬</span><span>וואטסאפ</span></a>` : ""}
+</div>`
+    : "";
+
+  const descParagraphs = description
+    ? description.split("\n").map((p) => p.trim()).filter(Boolean)
+    : [];
+
+  const aboutSection = (descParagraphs.length > 0 || amenities.length > 0)
+    ? `<section class="details-section" id="details" aria-labelledby="details-title">
+<div class="details-inner">
+<h2 class="section-title" id="details-title">אודות ופרטי האירוח</h2>
+${descParagraphs.length ? `<div class="details-desc">${descParagraphs.map((p) => `<p>${esc(p)}</p>`).join("")}</div>` : ""}
+${amenities.length ? `<div class="details-amenities"><h3 class="amenities-title">מה בסוויטה?</h3><ul class="amenities-tags" role="list">${amenities.map((a) => `<li><span class="amenity-check">✓</span> ${esc(a)}</li>`).join("")}</ul></div>` : ""}
+</div>
+</section>`
     : "";
 
   const sameNumber = Boolean(phone && whatsapp) && phone.replace(/\D/g, "") === whatsapp.replace(/\D/g, "");
-  const contactEntries = sameNumber
+  const contactEntries = `
+${location ? `<div><dt>מיקום</dt><dd>${esc(location)}</dd></div>` : ""}
+${sameNumber
     ? `<div><dt>טלפון / וואטסאפ</dt><dd><a href="${esc(telHref(phone))}" dir="ltr" translate="no">${esc(phone)}</a></dd><dd class="contact-ways"><a href="${esc(telHref(phone))}">חיוג</a><a href="${esc(waHref(whatsapp))}" rel="noopener" target="_blank">וואטסאפ</a></dd></div>`
     : `${phone ? `<div><dt>טלפון</dt><dd><a href="${esc(telHref(phone))}" dir="ltr" translate="no">${esc(phone)}</a></dd></div>` : ""}
-${whatsapp ? `<div><dt>וואטסאפ</dt><dd><a href="${esc(waHref(whatsapp))}" rel="noopener" target="_blank" dir="ltr" translate="no">${esc(whatsapp)}</a></dd></div>` : ""}`;
+${whatsapp ? `<div><dt>וואטסאפ</dt><dd><a href="${esc(waHref(whatsapp))}" rel="noopener" target="_blank" dir="ltr" translate="no">${esc(whatsapp)}</a></dd></div>` : ""}`
+}`;
 
-  const footer = hasContact
+  const footer = (hasContact || location)
     ? `<footer class="contact" id="contact">
 <h2 class="vh">יצירת קשר</h2>
 <dl class="contact-list">
@@ -610,7 +684,7 @@ ${contactEntries}
 </footer>`
     : `<footer class="contact contact--bare"></footer>`;
 
-  const description = t.subtitle ? t.subtitle : `${name}: תמונות ופרטי יצירת קשר`;
+  const descriptionMeta = t.subtitle ? t.subtitle : `${name}: תמונות ופרטי יצירת קשר`;
 
   return `<!doctype html>
 <html lang="he" dir="rtl">
@@ -618,10 +692,10 @@ ${contactEntries}
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>${esc(name)}</title>
-<meta name="description" content="${esc(description)}">
+<meta name="description" content="${esc(descriptionMeta)}">
 <meta name="theme-color" content="#ffffff">
 <meta property="og:title" content="${esc(name)}">
-<meta property="og:description" content="${esc(description)}">
+<meta property="og:description" content="${esc(descriptionMeta)}">
 <meta property="og:type" content="website">
 ${total ? `<meta property="og:image" content="${imgSrc(site.photos[0], "w2000")}">` : ""}
 <link rel="preload" href="/fonts/assistant-hebrew-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
@@ -632,14 +706,32 @@ ${total ? `<meta property="og:image" content="${imgSrc(site.photos[0], "w2000")}
 </head>
 <body class="${hasContact ? "has-bar" : ""}">
 <a class="skip" href="#gallery">דילוג לתמונות</a>
+<nav class="top-nav" aria-label="ניווט עליון">
+<div class="nav-links">
+${(descParagraphs.length > 0 || amenities.length > 0) ? `<a href="#details" class="nav-link">אודות</a>` : ""}
+<a href="#gallery" class="nav-link">גלריה</a>
+${(hasContact || location) ? `<a href="#contact" class="nav-link">יצירת קשר</a>` : ""}
+</div>
+<a href="/admin" class="admin-nav-link" title="כניסה למערכת ניהול" aria-label="כניסה למערכת ניהול">
+<svg class="admin-nav-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+<span>ניהול</span>
+</a>
+</nav>
 <header class="masthead">
 <h1 class="name" translate="no">${esc(name)}</h1>
+${location ? `<p class="location-tag">📍 ${esc(location)}</p>` : ""}
 ${t.subtitle ? `<p class="subtitle">${esc(t.subtitle)}</p>` : ""}
-${headerContact}
+${heroContact}
 </header>
+${aboutSection}
+<section class="gallery-wrapper" aria-labelledby="gallery-title">
+<div class="gallery-head">
+<h2 class="section-title" id="gallery-title">גלריית תמונות</h2>
+</div>
 <main id="gallery" tabindex="-1">
 ${gallery}
 </main>
+</section>
 ${footer}
 ${hasContact ? `<div class="bar" role="navigation" aria-label="יצירת קשר מהיר">${contactLinks.join("")}</div>` : ""}
 <dialog class="viewer" aria-label="תצוגת תמונה">

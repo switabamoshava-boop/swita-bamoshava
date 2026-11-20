@@ -101,11 +101,63 @@ img { display: block; max-width: 100%; }
 }
 .skip:focus { top: 10px; }
 
+/* ----------------------------------------------------------- Top Nav */
+
+.top-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px max(var(--gutter), env(safe-area-inset-right)) 12px max(var(--gutter), env(safe-area-inset-left));
+  border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+  font-size: 13px;
+  background: var(--paper);
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.nav-link {
+  color: var(--quiet);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+.nav-link:hover {
+  color: var(--ink);
+}
+
+.admin-nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--quiet);
+  text-decoration: none;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  margin-inline-start: auto;
+}
+.admin-nav-link:hover {
+  color: var(--ink);
+  border-color: var(--ink);
+  background: rgba(0, 0, 0, 0.04);
+}
+.admin-nav-icon {
+  display: inline-block;
+  vertical-align: middle;
+}
+
 /* ---------------------------------------------------------- Masthead */
 
 .masthead {
   position: relative;
-  padding: 44px max(var(--gutter), env(safe-area-inset-right)) 36px max(var(--gutter), env(safe-area-inset-left));
+  padding: 36px max(var(--gutter), env(safe-area-inset-right)) 32px max(var(--gutter), env(safe-area-inset-left));
   text-align: center;
 }
 
@@ -129,6 +181,120 @@ img { display: block; max-width: 100%; }
   color: var(--ink);
   text-wrap: balance;
   overflow-wrap: anywhere;
+}
+
+/* Location badge in masthead */
+.location-tag {
+  margin: 8px auto 0;
+  font-size: 13px;
+  color: var(--quiet);
+  letter-spacing: 0.05em;
+}
+
+/* Hero quick contact */
+.hero-contact {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-top: 24px;
+}
+.hero-act {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid var(--ink);
+  color: var(--ink);
+  background: var(--paper);
+  transition: all 0.2s ease;
+}
+.hero-act:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+.hero-act--wa {
+  background: #25d366;
+  border-color: #25d366;
+  color: #fff;
+}
+.hero-act--wa:hover {
+  background: #1eb956;
+  border-color: #1eb956;
+  color: #fff;
+}
+.hero-act-icon { font-size: 14px; }
+
+/* Details / About Section */
+.details-section {
+  padding: 44px max(var(--gutter), env(safe-area-inset-right)) 52px max(var(--gutter), env(safe-area-inset-left));
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  background: #fdfdfd;
+}
+.details-inner {
+  max-width: 760px;
+  margin: 0 auto;
+}
+.section-title {
+  margin: 0 0 20px;
+  font-family: var(--display);
+  font-size: clamp(1.4rem, 1.1rem + 1vw, 2rem);
+  font-weight: 400;
+  text-align: center;
+  letter-spacing: 0.02em;
+}
+.details-desc {
+  font-size: 15px;
+  line-height: 1.8;
+  color: #222;
+  margin-bottom: 28px;
+}
+.details-desc p { margin: 0 0 14px; }
+.details-desc p:last-child { margin-bottom: 0; }
+
+.details-amenities {
+  padding-top: 20px;
+  border-top: 1px dashed #ccc;
+}
+.amenities-title {
+  margin: 0 0 14px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.amenities-tags {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.amenities-tags li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--ink);
+}
+.amenity-check { color: #2e7d32; font-weight: bold; }
+
+.gallery-wrapper {
+  padding-top: 36px;
+}
+.gallery-head {
+  text-align: center;
+  margin-bottom: 20px;
 }
 
 .top-contact { display: none; }
@@ -252,6 +418,7 @@ main:focus { outline: none; }
 @media (max-width: 719px) {
   .has-bar .contact-ways { display: none; }
 }
+
 
 /* Mobile action bar: the two ways to reach the owner, one thumb away. */
 .bar {

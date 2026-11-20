@@ -111,6 +111,13 @@ async function enterAdmin() {
 }
 
 $("#recheck").addEventListener("click", boot);
+const goToLoginBtn = $("#go-to-login");
+if (goToLoginBtn) {
+  goToLoginBtn.addEventListener("click", () => {
+    show("login");
+    if (matchMedia("(pointer: fine)").matches) $("#token").focus();
+  });
+}
 
 /* --------------------------------------------------------------- Login */
 
@@ -164,8 +171,11 @@ function renderTexts() {
   const t = site.texts;
   $("#top-name").textContent = t.name ? `ניהול: ${t.name}` : "ניהול האתר";
   const form = $("#texts-form");
-  form.name.value = t.name || "";
+  form.name.value = t.name || "סוויטה במושבה";
   form.subtitle.value = t.subtitle || "";
+  form.location.value = t.location || "";
+  form.description.value = t.description || "";
+  form.amenities.value = t.amenities || "";
   form.phone.value = t.phone || "";
   form.whatsapp.value = t.whatsapp || "";
 }
@@ -510,6 +520,9 @@ $("#texts-form").addEventListener("submit", async (e) => {
   const body = {
     name: form.name.value.trim(),
     subtitle: form.subtitle.value.trim(),
+    location: form.location.value.trim(),
+    description: form.description.value.trim(),
+    amenities: form.amenities.value.trim(),
     phone: form.phone.value.trim(),
     whatsapp: form.whatsapp.value.trim(),
   };
